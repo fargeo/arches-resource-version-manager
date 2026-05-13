@@ -22,7 +22,8 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "arches>=8.1.0,<8.3.0",
+    "arches>=8.1.0,<9.0.0",
+    "django-oauth-toolkit",
 ]
 version = "0.0.1"
 
