@@ -1,0 +1,22 @@
+*.pyc
+*.log
+node_modules
+coverage/
+arches_resource_version_manager/logs
+arches_resource_version_manager/export_deliverables
+arches_resource_version_manager/cantaloupe/*
+arches_resource_version_manager/staticfiles
+arches_resource_version_manager/media/packages
+arches_resource_version_manager/media/build/
+arches_resource_version_manager/uploadedfiles/*
+arches_resource_version_manager/settings_local.py
+webpack-stats.json
+.vscode/
+*.egg-info
+.DS_STORE
+CACHE
+frontend_configuration
+
+# Packaging
+build/
+dist/
