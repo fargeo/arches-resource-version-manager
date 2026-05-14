@@ -3,7 +3,7 @@ import logging
 from arches.app.models import models
 from arches.app.models.resource import Resource
 
-from arches_resource_version_manager.models import ResourceVersion
+from arches_resource_version_manager.models import VersionedResource
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +11,18 @@ logger = logging.getLogger(__name__)
 def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
     """
     Archive the current editable Draft by cloning it with a Retired lifecycle
-    state, recording the clone in ResourceVersion, then returning the original
+    state, recording the clone in VersionedResource, then returning the original
     draft resource for further mutation.
     """
     try:
-        current_version = ResourceVersion.objects.get(
+        current_version = VersionedResource.objects.get(
             resource_group_id=resource_group_id,
-            state=ResourceVersion.DRAFT,
+            state=VersionedResource.DRAFT,
             editable=True,
         )
-    except ResourceVersion.DoesNotExist:
+    except VersionedResource.DoesNotExist:
         raise ValueError(
-            f"No editable Draft ResourceVersion found for {resource_group_id!r}."
+            f"No editable Draft VersionedResource found for {resource_group_id!r}."
         )
 
     draft_resource = models.Resource.objects.get(
@@ -34,29 +34,27 @@ def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
     )
     draft_clone.save(user=user)
 
-    ResourceVersion.objects.create(
+    VersionedResource.objects.create(
         resource_group_id=resource_group_id,
         resourceinstanceid=draft_clone,
         version=current_version.version,
         payload=current_version.payload,
         editable=False,
-        state=ResourceVersion.ARCHIVED,
+        state=VersionedResource.ARCHIVED,
     )
 
     return draft_resource
 
 
 def archive_final_version(resource_group_id: str) -> None:
-    """Mark the current Final ResourceVersion as Archived."""
+    """Mark the current Final VersionedResource as Archived."""
     try:
-        version = ResourceVersion.objects.get(
+        version = VersionedResource.objects.get(
             resource_group_id=resource_group_id,
-            state=ResourceVersion.FINAL,
+            state=VersionedResource.FINAL,
         )
-    except ResourceVersion.DoesNotExist:
-        raise ValueError(
-            f"No Final ResourceVersion found for {resource_group_id!r}."
-        )
-    version.state = ResourceVersion.ARCHIVED
+    except VersionedResource.DoesNotExist:
+        raise ValueError(f"No Final VersionedResource found for {resource_group_id!r}.")
+    version.state = VersionedResource.ARCHIVED
     version.editable = False
     version.save()

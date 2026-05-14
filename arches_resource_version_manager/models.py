@@ -8,7 +8,7 @@ class ResourceVersionManager(models.Manager):
     def get_current_draft(self, resource_group_id: str) -> Resource:
         version = self.get(
             resource_group_id=resource_group_id,
-            state=ResourceVersion.DRAFT,
+            state=VersionedResource.DRAFT,
             editable=True,
         )
         return Resource.objects.get(resourceinstanceid=version.resourceinstanceid_id)
@@ -16,12 +16,12 @@ class ResourceVersionManager(models.Manager):
     def get_current_final(self, resource_group_id: str) -> Resource:
         version = self.get(
             resource_group_id=resource_group_id,
-            state=ResourceVersion.FINAL,
+            state=VersionedResource.FINAL,
         )
         return Resource.objects.get(resourceinstanceid=version.resourceinstanceid_id)
 
 
-class ResourceVersion(models.Model):
+class VersionedResource(models.Model):
     DRAFT = "draft"
     FINAL = "final"
     ARCHIVED = "archived"
