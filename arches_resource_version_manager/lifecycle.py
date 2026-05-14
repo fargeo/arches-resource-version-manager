@@ -34,7 +34,8 @@ def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
     VersionedResource.objects.create(
         resourceinstance_id=draft_clone.resourceinstanceid,
         resource_group_id=resource_group_id,
-        version=current_version.version,
+        major_version=current_version.major_version,
+        minor_version=current_version.minor_version,
         payload=current_version.payload,
         editable=False,
     )

@@ -11,14 +11,14 @@ class VersionedResourceManager(models.Manager):
             resource_group_id=resource_group_id,
             editable=True,
         )
-        return Resource.objects.get(pk=versioned.pk)
+        return versioned.resourceinstance
 
     def get_current_final(self, resource_group_id: str) -> Resource:
         versioned = self.get(
             resource_group_id=resource_group_id,
             resourceinstance__resource_instance_lifecycle_state__name="Active",
-        )
-        return Resource.objects.get(pk=versioned.pk)
+        ).select_related("resourceinstance")
+        return versioned.resourceinstance
 
 
 class VersionedResource(models.Model):
@@ -30,7 +30,8 @@ class VersionedResource(models.Model):
         primary_key=True,
     )
     resource_group_id = models.CharField(max_length=255)
-    version = models.CharField(max_length=255, blank=True, null=True)
+    major_version = models.IntegerField(default=0)
+    minor_version = models.IntegerField(default=0)
     payload = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     editable = models.BooleanField(default=False)
