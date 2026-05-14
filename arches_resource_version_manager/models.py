@@ -1,44 +1,35 @@
 from django.db import models
+from django.db.models.deletion import CASCADE
 
 from arches.app.models.models import ResourceInstance
 from arches.app.models.resource import Resource
 
 
-class ResourceVersionManager(models.Manager):
+class VersionedResourceManager(models.Manager):
     def get_current_draft(self, resource_group_id: str) -> Resource:
-        version = self.get(
+        versioned = self.get(
             resource_group_id=resource_group_id,
-            state=VersionedResource.DRAFT,
             editable=True,
         )
-        return Resource.objects.get(resourceinstanceid=version.resourceinstanceid_id)
+        return Resource.objects.get(pk=versioned.pk)
 
     def get_current_final(self, resource_group_id: str) -> Resource:
-        version = self.get(
+        versioned = self.get(
             resource_group_id=resource_group_id,
-            state=VersionedResource.FINAL,
+            resourceinstance__resource_instance_lifecycle_state__name="Active",
         )
-        return Resource.objects.get(resourceinstanceid=version.resourceinstanceid_id)
+        return Resource.objects.get(pk=versioned.pk)
 
 
 class VersionedResource(models.Model):
-    DRAFT = "draft"
-    FINAL = "final"
-    ARCHIVED = "archived"
-    STATE_CHOICES = {
-        DRAFT: "draft",
-        FINAL: "final",
-        ARCHIVED: "archived",
-    }
+    objects = VersionedResourceManager()
 
-    objects = ResourceVersionManager()
-
-    resource_group_id = models.CharField(max_length=255)
-    resourceinstanceid = models.ForeignKey(
+    resourceinstance = models.OneToOneField(
         ResourceInstance,
-        on_delete=models.CASCADE,
+        on_delete=CASCADE,
+        primary_key=True,
     )
-    state = models.CharField(choices=STATE_CHOICES, default=DRAFT, max_length=50)
+    resource_group_id = models.CharField(max_length=255)
     version = models.CharField(max_length=255, blank=True, null=True)
     payload = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -46,4 +37,4 @@ class VersionedResource(models.Model):
 
     class Meta:
         managed = True
-        db_table = "resource_version"
+        db_table = "versioned_resource"

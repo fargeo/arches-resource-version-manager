@@ -17,7 +17,6 @@ def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
     try:
         current_version = VersionedResource.objects.get(
             resource_group_id=resource_group_id,
-            state=VersionedResource.DRAFT,
             editable=True,
         )
     except VersionedResource.DoesNotExist:
@@ -25,9 +24,7 @@ def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
             f"No editable Draft VersionedResource found for {resource_group_id!r}."
         )
 
-    draft_resource = models.Resource.objects.get(
-        resourceinstanceid=current_version.resourceinstanceid_id
-    )
+    draft_resource = models.Resource.objects.get(pk=current_version.pk)
     draft_clone = draft_resource.copy()
     draft_clone.resource_instance_lifecycle_state = (
         models.ResourceInstanceLifecycleState.objects.get(name="Retired")
@@ -35,26 +32,11 @@ def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
     draft_clone.save(user=user)
 
     VersionedResource.objects.create(
+        resourceinstance_id=draft_clone.resourceinstanceid,
         resource_group_id=resource_group_id,
-        resourceinstanceid=draft_clone,
         version=current_version.version,
         payload=current_version.payload,
         editable=False,
-        state=VersionedResource.ARCHIVED,
     )
 
     return draft_resource
-
-
-def archive_final_version(resource_group_id: str) -> None:
-    """Mark the current Final VersionedResource as Archived."""
-    try:
-        version = VersionedResource.objects.get(
-            resource_group_id=resource_group_id,
-            state=VersionedResource.FINAL,
-        )
-    except VersionedResource.DoesNotExist:
-        raise ValueError(f"No Final VersionedResource found for {resource_group_id!r}.")
-    version.state = VersionedResource.ARCHIVED
-    version.editable = False
-    version.save()
