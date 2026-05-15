@@ -29,7 +29,6 @@ class Migration(migrations.Migration):
                 ("minor_version", models.IntegerField(default=0)),
                 ("payload", models.JSONField(blank=True, null=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("editable", models.BooleanField(default=False)),
             ],
             options={
                 "db_table": "versioned_resource",

@@ -8,21 +8,36 @@ from arches_resource_version_manager.models import VersionedResource
 logger = logging.getLogger(__name__)
 
 
+def get_current_draft(resource_group_id: str) -> Resource:
+    """Return the current editable Draft for the given resource group, or raise VersionedResource.DoesNotExist if not found."""
+    return get_current_by_lifecycle_state(resource_group_id, lifecycle_state="Draft")
+
+
+def get_current_final(resource_group_id: str) -> Resource:
+    """Return the current Final (Active) version for the given resource group, or None if not found."""
+    return get_current_by_lifecycle_state(resource_group_id, lifecycle_state="Active")
+
+
+def get_current_by_lifecycle_state(
+    resource_group_id: str, lifecycle_state: str
+) -> Resource:
+    """Return the current version for the given resource group and lifecycle state, or None if not found."""
+    try:
+        return VersionedResource.objects.get(
+            resource_group_id=resource_group_id,
+            resourceinstance__resource_instance_lifecycle_state__name=lifecycle_state,
+        )
+    except VersionedResource.DoesNotExist:
+        return None
+
+
 def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
     """
     Archive the current editable Draft by cloning it with a Retired lifecycle
     state, recording the clone in VersionedResource, then returning the original
     draft resource for further mutation.
     """
-    try:
-        current_version = VersionedResource.objects.get(
-            resource_group_id=resource_group_id,
-            editable=True,
-        )
-    except VersionedResource.DoesNotExist:
-        raise ValueError(
-            f"No editable Draft VersionedResource found for {resource_group_id!r}."
-        )
+    current_version = get_current_draft(resource_group_id)
 
     draft_resource = models.Resource.objects.get(pk=current_version.pk)
     draft_clone = draft_resource.copy()
@@ -37,13 +52,14 @@ def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
         major_version=current_version.major_version,
         minor_version=current_version.minor_version,
         payload=current_version.payload,
-        editable=False,
     )
 
     return draft_resource
 
 
-def register_new_draft(resource: Resource, resource_group_id: str, payload: dict) -> VersionedResource:
+def register_new_draft(
+    resource: Resource, resource_group_id: str, payload: dict
+) -> VersionedResource:
     """Record a newly created resource as its first editable Draft version."""
     return VersionedResource.objects.create(
         resourceinstance_id=resource.resourceinstanceid,
@@ -51,11 +67,12 @@ def register_new_draft(resource: Resource, resource_group_id: str, payload: dict
         major_version=1,
         minor_version=0,
         payload=payload,
-        editable=True,
     )
 
 
-def finalize_draft(resource_group_id: str, user, major_version, payload: dict) -> Resource:
+def finalize_draft(
+    resource_group_id: str, user, major_version, payload: dict
+) -> Resource:
     """
     Promote the current Draft to a new Final (Active) version.
 
@@ -65,32 +82,17 @@ def finalize_draft(resource_group_id: str, user, major_version, payload: dict) -
 
     Returns the new Final resource.
     """
-    try:
-        current_final_versioned = VersionedResource.objects.get(
-            resource_group_id=resource_group_id,
-            resourceinstance__resource_instance_lifecycle_state__name="Active",
-        )
-    except VersionedResource.DoesNotExist:
-        current_final_versioned = None
+    current_final = get_current_final(resource_group_id)
+    current_draft = get_current_draft(resource_group_id)
 
-    if current_final_versioned:
-        current_final_resource = models.Resource.objects.get(pk=current_final_versioned.pk)
+    if current_final:
+        current_final_resource = models.Resource.objects.get(pk=current_final.pk)
         current_final_resource.resource_instance_lifecycle_state = (
             models.ResourceInstanceLifecycleState.objects.get(name="Retired")
         )
         current_final_resource.save(user=user)
 
-    try:
-        draft_versioned = VersionedResource.objects.get(
-            resource_group_id=resource_group_id,
-            editable=True,
-        )
-    except VersionedResource.DoesNotExist:
-        raise ValueError(
-            f"No editable Draft VersionedResource found for {resource_group_id!r}."
-        )
-
-    draft_resource = models.Resource.objects.get(pk=draft_versioned.pk)
+    draft_resource = models.Resource.objects.get(pk=current_draft.pk)
     final_resource = draft_resource.copy()
     final_resource.resource_instance_lifecycle_state = (
         models.ResourceInstanceLifecycleState.objects.get(name="Active")
@@ -103,7 +105,6 @@ def finalize_draft(resource_group_id: str, user, major_version, payload: dict) -
         major_version=major_version,
         minor_version=0,
         payload=payload,
-        editable=False,
     )
 
     return final_resource

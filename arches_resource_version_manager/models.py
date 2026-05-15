@@ -34,7 +34,6 @@ class VersionedResource(models.Model):
     minor_version = models.IntegerField(default=0)
     payload = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    editable = models.BooleanField(default=False)
 
     class Meta:
         managed = True
