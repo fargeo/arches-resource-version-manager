@@ -8,36 +8,13 @@ from arches_resource_version_manager.models import VersionedResource
 logger = logging.getLogger(__name__)
 
 
-def get_current_draft(resource_group_id: str) -> Resource:
-    """Return the current editable Draft for the given resource group, or raise VersionedResource.DoesNotExist if not found."""
-    return get_current_by_lifecycle_state(resource_group_id, lifecycle_state="Draft")
-
-
-def get_current_final(resource_group_id: str) -> Resource:
-    """Return the current Final (Active) version for the given resource group, or None if not found."""
-    return get_current_by_lifecycle_state(resource_group_id, lifecycle_state="Active")
-
-
-def get_current_by_lifecycle_state(
-    resource_group_id: str, lifecycle_state: str
-) -> Resource:
-    """Return the current version for the given resource group and lifecycle state, or None if not found."""
-    try:
-        return VersionedResource.objects.get(
-            resource_group_id=resource_group_id,
-            resourceinstance__resource_instance_lifecycle_state__name=lifecycle_state,
-        )
-    except VersionedResource.DoesNotExist:
-        return None
-
-
 def archive_copy_of_current_draft(resource_group_id: str, user) -> Resource:
     """
     Archive the current editable Draft by cloning it with a Retired lifecycle
     state, recording the clone in VersionedResource, then returning the new
     archived VersionedResource.
     """
-    draft_versioned_resource = get_current_draft(resource_group_id)
+    draft_versioned_resource = VersionedResource.objects.get_current_draft(resource_group_id)
 
     draft_resource = models.Resource.objects.get(pk=draft_versioned_resource.pk)
 
@@ -81,8 +58,8 @@ def finalize_draft(
 
     Returns the new Final resource.
     """
-    current_final = get_current_final(resource_group_id)
-    current_draft = get_current_draft(resource_group_id)
+    current_final = VersionedResource.objects.get_current_final(resource_group_id)
+    current_draft = VersionedResource.objects.get_current_draft(resource_group_id)
 
     if current_final:
         current_final_resource = models.Resource.objects.get(pk=current_final.pk)
