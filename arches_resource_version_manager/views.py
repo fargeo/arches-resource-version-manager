@@ -56,4 +56,6 @@ class ResourceVersionSyncView(ProtectedResourceView):
         )
 
     def process_resource(self, payload: dict, user) -> tuple:
-        raise NotImplementedError("Subclasses must implement process_resource(payload, user).")
+        raise NotImplementedError(
+            "Subclasses must implement process_resource(payload, user)."
+        )
