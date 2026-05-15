@@ -31,30 +31,29 @@ def get_current_by_lifecycle_state(
         return None
 
 
-def archive_and_copy_draft(resource_group_id: str, user) -> Resource:
+def archive_copy_of_current_draft(resource_group_id: str, user) -> Resource:
     """
     Archive the current editable Draft by cloning it with a Retired lifecycle
-    state, recording the clone in VersionedResource, then returning the original
-    draft resource for further mutation.
+    state, recording the clone in VersionedResource, then returning the new
+    archived VersionedResource.
     """
-    current_version = get_current_draft(resource_group_id)
+    draft_versioned_resource = get_current_draft(resource_group_id)
 
-    draft_resource = models.Resource.objects.get(pk=current_version.pk)
-    draft_clone = draft_resource.copy()
-    draft_clone.resource_instance_lifecycle_state = (
+    draft_resource = models.Resource.objects.get(pk=draft_versioned_resource.pk)
+
+    draft_resource_copy = draft_resource.copy()
+    draft_resource_copy.resource_instance_lifecycle_state = (
         models.ResourceInstanceLifecycleState.objects.get(name="Retired")
     )
-    draft_clone.save(user=user)
+    draft_resource_copy.save(user=user)
 
-    VersionedResource.objects.create(
-        resourceinstance_id=draft_clone.resourceinstanceid,
+    return VersionedResource.objects.create(
+        resourceinstance_id=draft_resource_copy.resourceinstanceid,
         resource_group_id=resource_group_id,
-        major_version=current_version.major_version,
-        minor_version=current_version.minor_version,
-        payload=current_version.payload,
+        major_version=draft_versioned_resource.major_version,
+        minor_version=draft_versioned_resource.minor_version,
+        payload=draft_versioned_resource.payload,
     )
-
-    return draft_resource
 
 
 def register_new_draft(
@@ -99,12 +98,10 @@ def finalize_draft(
     )
     final_resource.save(user=user)
 
-    VersionedResource.objects.create(
+    return VersionedResource.objects.create(
         resourceinstance_id=final_resource.resourceinstanceid,
         resource_group_id=resource_group_id,
         major_version=major_version,
         minor_version=0,
         payload=payload,
     )
-
-    return final_resource
