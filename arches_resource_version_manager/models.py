@@ -40,7 +40,7 @@ class VersionedResource(models.Model):
     resource_group_id = models.CharField(max_length=255)
     major_version = models.IntegerField(default=0)
     minor_version = models.IntegerField(default=0)
-    payload = models.JSONField(blank=True, null=True)
+    metadata = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -31,12 +31,12 @@ def archive_copy_of_current_draft(resource_group_id: str, user) -> VersionedReso
         resource_group_id=resource_group_id,
         major_version=draft_versioned_resource.major_version,
         minor_version=draft_versioned_resource.minor_version,
-        payload=draft_versioned_resource.payload,
+        metadata=draft_versioned_resource.metadata,
     )
 
 
 def register_new_draft(
-    resource: Resource, resource_group_id: str, major_version: int, payload: dict
+    resource: Resource, resource_group_id: str, major_version: int, metadata: dict
 ) -> VersionedResource:
     """Record a newly created resource as its first editable Draft version."""
     return VersionedResource.objects.create(
@@ -44,12 +44,12 @@ def register_new_draft(
         resource_group_id=resource_group_id,
         major_version=major_version,
         minor_version=0,
-        payload=payload,
+        metadata=metadata,
     )
 
 
 def finalize_draft(
-    resource_group_id: str, user, major_version, payload: dict
+    resource_group_id: str, user, major_version, metadata: dict
 ) -> VersionedResource:
     """
     Promote the current Draft to a new Final (Active) version.
@@ -89,5 +89,5 @@ def finalize_draft(
         resource_group_id=resource_group_id,
         major_version=major_version,
         minor_version=0,
-        payload=payload,
+        metadata=metadata,
     )
