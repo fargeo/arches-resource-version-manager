@@ -19,11 +19,8 @@ class ResourceVersionSyncView(ProtectedResourceView):
     versioned Arches resource instances.
 
     Subclasses must define:
-      - graph_id: str  — the target graph UUID
       - process_resource(payload, user) -> (resource, created)  — upsert logic
     """
-
-    graph_id: str = NotImplemented
 
     def post(self, request, *args, **kwargs):
         try:
@@ -50,7 +47,7 @@ class ResourceVersionSyncView(ProtectedResourceView):
             {
                 "resourceinstanceid": str(resource.resourceinstanceid),
                 "created": created,
-                "graph_id": self.graph_id,
+                "graph_id": resource.graph_id,
             },
             status=201 if created else 200,
         )
